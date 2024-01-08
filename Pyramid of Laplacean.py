@@ -1,4 +1,3 @@
-#/Users/mac/Desktop/cv_jin/diffusion_git_c/proposed/a_photograph_of_an_astronaut_riding_a_horse_S3202469941_St25_G7.5.jpeg
 import cv2
 import numpy as np
 
