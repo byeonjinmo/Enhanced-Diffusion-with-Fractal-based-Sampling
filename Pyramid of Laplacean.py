@@ -3,7 +3,7 @@ import numpy as np
 
 # 원본 이미지 불러오기
 image = cv2.imread('/Users/mac/Desktop/cv_jin/diffusion_git_c/proposed/a_photograph_of_an_astronaut_riding_a_horse_S3202469941_St25_G7.5.jpeg')
-image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+#image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 
 # 가우시안 피라미드를 생성하기 위한 함수
@@ -31,7 +31,7 @@ def laplacian_pyramid(gaussian_pyr):
 
 
 # 가우시안 및 라플라시안 피라미드 생성
-num_levels = 3  # 레벨 수 정의
+num_levels = 5  # 레벨 수 정의
 gaussian_pyr = gaussian_pyramid(image, num_levels)
 laplacian_pyr = laplacian_pyramid(gaussian_pyr)
 
