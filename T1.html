@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>이미지 생성기</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f7f7f7;
+  }
+  .container {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  .form-group {
+    margin-bottom: 20px;
+  }
+  label {
+    display: block;
+    margin-bottom: 5px;
+  }
+  input[type="text"], button, .image-result {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+  }
+  button {
+    background-color: #5cb85c;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #4cae4c;
+  }
+  .image-result {
+    background: url('placeholder.png') center center no-repeat;
+    height: 200px;
+    background-size: contain;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>디퓨전 이미지 생성기</h1>
+  <div class="form-group">
+    <label for="text-prompt">텍스트 프롬프트:</label>
+    <input type="text" id="text-prompt" placeholder="이미지에 대한 설명을 입력하세요...">
+  </div>
+  <div class="form-group">
+    <button id="generate-button">이미지 생성</button>
+  </div>
+  <div class="form-group">
+    <div class="image-result"></div>
+  </div>
+</div>
+
+<script>
+document.getElementById('generate-button').onclick = function() {
+  var prompt = document.getElementById('text-prompt').value;
+  if (prompt) {
+    // TODO: 서버에 이미지 생성 요청을 보내고 응답을 받는 코드를 여기에 추가합니다.
+    alert('서버에 다음 프롬프트로 이미지 생성을 요청합니다: ' + prompt);
+    // 아래는 예시로 플레이스홀더 이미지를 표시하는 코드입니다.
+    document.querySelector('.image-result').style.backgroundImage = 'url("generated_image.png")';
+  } else {
+    alert('텍스트 프롬프트를 입력해주세요.');
+  }
+};
+</script>
+
+</body>
+</html>
