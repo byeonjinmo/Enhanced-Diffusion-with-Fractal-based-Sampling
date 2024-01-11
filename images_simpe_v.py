@@ -113,4 +113,4 @@ def create_argparser():
 
 if __name__ == "__main__":
     main()
-# 향상된 디퓨전 모델의 샘플링 과정 변경
+# 향상된 디퓨전 모델의 샘플링 과정 변경 test
