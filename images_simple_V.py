@@ -38,8 +38,54 @@ from improved_diffusion.script_util import (
 
 )
 
+import cv2
+import numpy as np
 
 
+#def compute_laplacian_pyramid(image, levels):
+ #   gaussian_pyramid = [image]
+  #  for i in range(levels):
+   #     image = cv2.pyrDown(image)
+    #    gaussian_pyramid.append(image)
+
+    #laplacian_pyramid = []
+    #for i in range(levels, 0, -1):
+     #   gaussian_expanded = cv2.pyrUp(gaussian_pyramid[i])
+      #  laplacian = cv2.subtract(gaussian_pyramid[i - 1], gaussian_expanded)
+       # laplacian_pyramid.append(laplacian)
+
+    #return laplacian_pyramid
+import torch
+import torch.nn.functional as F
+
+def gaussian_pyramid(image, num_levels):
+    gaussian_images = [image]
+    for level in range(1, num_levels):
+        image = F.avg_pool2d(image, kernel_size=2, stride=2)
+        gaussian_images.append(image)
+    return gaussian_images
+
+def laplacian_pyramid(gaussian_images):
+    laplacian_images = []
+    num_levels = len(gaussian_images)
+    for level in range(num_levels - 1):
+        upsampled = F.interpolate(gaussian_images[level + 1], scale_factor=2, mode='nearest')
+        laplacian = gaussian_images[level] - upsampled
+        laplacian_images.append(laplacian)
+    # The last level of the Gaussian pyramid is also the last level of the Laplacian pyramid
+    laplacian_images.append(gaussian_images[-1])
+    return laplacian_images
+
+
+def calculate_fractal_mu(mu_0, image, num_levels, weights):
+    gaussian_images = gaussian_pyramid(image, num_levels)
+    laplacian_images = laplacian_pyramid(gaussian_images)
+
+    mu_fractal = mu_0
+    for k, laplacian in enumerate(laplacian_images):
+        mu_fractal += weights[k] * laplacian
+
+    return mu_fractal
 
 
 def main():
