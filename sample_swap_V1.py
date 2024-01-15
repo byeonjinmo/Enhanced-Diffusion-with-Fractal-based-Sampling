@@ -101,7 +101,10 @@ def main():
             laplacian_images = laplacian_pyramid(gaussian_images)
             mu_fractal = image  # 초기 mu_0 이미지
             for k, laplacian in enumerate(laplacian_images):
-                mu_fractal += weights[k] * laplacian
+                # 원본 이미지의 높이와 너비가 H, W
+                _, _, H, W = sample.shape
+                upsampled_laplacian = F.interpolate(laplacian, size=(H, W), mode='bilinear', align_corners=False)
+                mu_fractal += weights[k] * upsampled_laplacian#laplacian
             sample[i] = mu_fractal.squeeze(0)  # 다시 배치에 삽입
 
         # 이미지 후처리 및 저장 코드
