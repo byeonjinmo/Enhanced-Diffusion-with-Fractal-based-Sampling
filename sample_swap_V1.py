@@ -104,7 +104,7 @@ def main():
                 # 원본 이미지의 높이와 너비가 H, W
                 _, _, H, W = sample.shape
                 upsampled_laplacian = F.interpolate(laplacian, size=(H, W), mode='bilinear', align_corners=False)
-                mu_fractal += weights[k] * upsampled_laplacian#laplacian
+                mu_fractal += weights[k] * upsampled_laplacian  #laplacian
             sample[i] = mu_fractal.squeeze(0)  # 다시 배치에 삽입
 
         # 이미지 후처리 및 저장 코드
@@ -156,3 +156,7 @@ def main():
 if __name__ == "__main__":
     main()
 
+# 프렉탈의 자기유사성을 활용하기 위한 차원과 레벨링의 하이퍼 파라미터 조정은?
+# 라플라시안( 디퓨전 활용애 가장 이상적인 프렉탈 ,만델브로트 및 줄리아 집합, 멀티스케일 프랙탈 노이즈, 이터레이티드 함수 시스템 (IFS)
+# 라플라시안 피라미드 레벨 (Level): 이미지를 다양한 해상도의 래벨로 분해 ( 더 높은 세부사항 파악 가능 )
+# 프랙탈 차원 (Dimension):프랙탈 차원은 프랙탈 기하학에서 사용되는 개념으로, 이미지의 복잡성과 세부사항의 정도를 나타냄
