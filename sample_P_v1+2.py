@@ -5,7 +5,7 @@ import numpy as np
 import torch as th
 import torch.distributed as dist
 import torch.nn.functional as F
-
+import torch
 from improved_diffusion import dist_util, logger
 from improved_diffusion.script_util import (
     NUM_CLASSES,
@@ -76,7 +76,7 @@ def create_argparser():
     defaults.update(dict(
         clip_denoised=True,
         num_samples=1000,
-        batch_size=32,
+        batch_size=16,
         use_ddim=False,
         model_path="",
     ))
@@ -130,7 +130,7 @@ def main():
        # weights = calculate_weights(num_levels, fractal_dimension)
         # 메인 함수 내에 다음 코드 추가
         train_loader = load_cifar10_data()
-        fractal_dimensions = calculate_fractal_dimension(train_loader)
+        fractal_dimension = calculate_fractal_dimension(train_loader)
         weights = calculate_weights(num_levels, fractal_dimension)
 
         for i in range(sample.shape[0]):
