@@ -121,36 +121,62 @@ def main():
             )
             model_kwargs["y"] = classes
 
-        sample_fn = (
-            diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
-        )
-        sample = sample_fn(
-            model,
-            (args.batch_size, 3, args.image_size, args.image_size),
-            clip_denoised=args.clip_denoised,
-            model_kwargs=model_kwargs,
-        )
-        for i in range(sample.shape[0]):
-            class_id = classes[i].item()
-            fractal_dimension = class_fractal_dimensions[class_id]
-            weights = calculate_weights(5, fractal_dimension)  # num_levels = 5
+            sample_fn = (
+                diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
+            )
+            sample = sample_fn(
+                model,
+                (args.batch_size, 3, args.image_size, args.image_size),
+                clip_denoised=args.clip_denoised,
+                model_kwargs=model_kwargs,
+            )
 
-            image = sample[i].unsqueeze(0)
-            gaussian_images = gaussian_pyramid(image, 5)
-            laplacian_images = laplacian_pyramid(gaussian_images)
-            mu_fractal = image
-            for k, laplacian in enumerate(laplacian_images):
-                _, _, H, W = sample.shape
-                upsampled_laplacian = F.interpolate(laplacian, size=(H, W), mode='bilinear', align_corners=False)
-                mu_fractal += weights[k] * upsampled_laplacian
-            sample[i] = mu_fractal.squeeze(0)
+            for i in range(sample.shape[0]):
+                class_id = classes[i].item()
+                fractal_dimension = class_fractal_dimensions[class_id]
+                weights = calculate_weights(5, fractal_dimension)
+
+                image = sample[i].unsqueeze(0)
+                gaussian_images = gaussian_pyramid(image, 5)
+                laplacian_images = laplacian_pyramid(gaussian_images)
+                mu_fractal = image
+                for k, laplacian in enumerate(laplacian_images):
+                    _, _, H, W = sample.shape
+                    upsampled_laplacian = F.interpolate(laplacian, size=(H, W), mode='bilinear', align_corners=False)
+                    mu_fractal += weights[k] * upsampled_laplacian
+                sample[i] = mu_fractal.squeeze(0)
+        else:
+            # 클래스 조건부가 아닐 때의 처리
+            sample_fn = (
+                diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
+            )
+            sample = sample_fn(
+                model,
+                (args.batch_size, 3, args.image_size, args.image_size),
+                clip_denoised=args.clip_denoised,
+                model_kwargs={},
+            )
+
+            fractal_dimension = default_fractal_dimension  # 기본 프랙탈 차원
+            weights = calculate_weights(5, fractal_dimension)
+
+            for i in range(sample.shape[0]):
+                image = sample[i].unsqueeze(0)
+                gaussian_images = gaussian_pyramid(image, 5)
+                laplacian_images = laplacian_pyramid(gaussian_images)
+                mu_fractal = image
+                for k, laplacian in enumerate(laplacian_images):
+                    _, _, H, W = sample.shape
+                    upsampled_laplacian = F.interpolate(laplacian, size=(H, W), mode='bilinear', align_corners=False)
+                    mu_fractal += weights[k] * upsampled_laplacian
+                sample[i] = mu_fractal.squeeze(0)
 
         # 이미지 후처리 및 저장 코드
         sample = ((sample + 1) * 127.5).clamp(0, 255).to(th.uint8)
         sample = sample.permute(0, 2, 3, 1)
         sample = sample.contiguous()
         gathered_samples = [th.zeros_like(sample) for _ in range(dist.get_world_size())]
-        dist.all_gather(gathered_samples, sample)  # NCCL에서는 gather 지원 안 함
+        dist.all_gather(gathered_samples, sample)
         all_images.extend([s.cpu().numpy() for s in gathered_samples])
         if args.class_cond:
             gathered_labels = [
@@ -193,4 +219,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
