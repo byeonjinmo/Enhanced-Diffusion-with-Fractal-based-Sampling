@@ -6,6 +6,8 @@ import torch as th
 import torch.distributed as dist
 import torch.nn.functional as F
 import torch
+import torchvision
+import torchvision.transforms as transforms
 from improved_diffusion import dist_util, logger
 from improved_diffusion.script_util import (
     NUM_CLASSES,
@@ -15,13 +17,8 @@ from improved_diffusion.script_util import (
     args_to_dict,
 )
 
-import torchvision
-import torchvision.transforms as transforms
-
 def load_cifar10_data():
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-    ])
+    transform = transforms.Compose([transforms.ToTensor()])
     train_set = torchvision.datasets.CIFAR10(root='./data', train=True,
                                              download=True, transform=transform)
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=4,
@@ -36,34 +33,25 @@ def box_counting(img, box_size):
                 count += 1
     return count
 
-
-# 클래스별 프랙탈 차원 계산
 def calculate_class_fractal_dimensions(train_loader):
     class_fractal_dimensions = {i: [] for i in range(10)}
+    class_samples_count = {i: 0 for i in range(10)}  # 클래스별 샘플 수 카운트
     for i, data in enumerate(train_loader, 0):
         inputs, labels = data
         for j in range(inputs.shape[0]):
-            img = inputs[j].numpy().sum(axis=0)  # Convert to grayscale
-            box_sizes = np.arange(1, 50)  # Range of box sizes
-            counts = np.array([box_counting(img, sz) for sz in box_sizes])
-            coeffs = np.polyfit(np.log(box_sizes), np.log(counts), 1)
-            class_fractal_dimensions[labels[j].item()].append(-coeffs[0])
+            class_id = labels[j].item()
+            if class_samples_count[class_id] < 50:  # 클래스별로 50개 샘플만 사용
+                img = inputs[j].numpy().sum(axis=0)  # Convert to grayscale
+                box_sizes = np.arange(1, 50)  # Range of box sizes
+                counts = np.array([box_counting(img, sz) for sz in box_sizes])
+                coeffs = np.polyfit(np.log(box_sizes), np.log(counts), 1)
+                class_fractal_dimensions[class_id].append(-coeffs[0])
+                class_samples_count[class_id] += 1
 
     for k in class_fractal_dimensions:
         class_fractal_dimensions[k] = np.mean(class_fractal_dimensions[k])
 
     return class_fractal_dimensions
-#def calculate_fractal_dimension(train_loader):
-    #fractal_dimensions = []
-    #for i, data in enumerate(train_loader, 0):
-        #inputs, labels = data
-        #for j in range(inputs.shape[0]):
-         #   img = inputs[j].numpy().sum(axis=0)  # Convert to grayscale
-        #    box_sizes = np.arange(1, 50)  # Range of box sizes
-       #     counts = np.array([box_counting(img, sz) for sz in box_sizes])
-      #      coeffs = np.polyfit(np.log(box_sizes), np.log(counts), 1)
-     #       fractal_dimensions.append(-coeffs[0])
-    #return np.mean(fractal_dimensions, axis=0)
 
 def gaussian_pyramid(image, num_levels):
     gaussian_images = [image]
@@ -145,30 +133,17 @@ def main():
         for i in range(sample.shape[0]):
             class_id = classes[i].item()
             fractal_dimension = class_fractal_dimensions[class_id]
-            weights = calculate_weights(num_levels, fractal_dimension)
+            weights = calculate_weights(5, fractal_dimension)  # num_levels = 5
 
-        # 프랙탈 기반 가중치 계산과 라플라시안 피라미드 적용 부분
-        num_levels = 5
-        # 예시로 5단계의 라플라시안 피라미드 사용
-        #fractal_dimension = 1.9  # 프랙탈 차원, 실제값으로 조정 필요
-
-       # weights = calculate_weights(num_levels, fractal_dimension)
-        # 메인 함수 내에 다음 코드 추가
-        #train_loader = load_cifar10_data()
-        #fractal_dimension = calculate_class_fractal_dimensions(train_loader)
-        weights = calculate_weights(num_levels, fractal_dimension)
-
-        for i in range(sample.shape[0]):
-            image = sample[i].unsqueeze(0)  # 배치 차원을 유지하면서 i번째 이미지 선택a
-            gaussian_images = gaussian_pyramid(image, num_levels)
+            image = sample[i].unsqueeze(0)
+            gaussian_images = gaussian_pyramid(image, 5)
             laplacian_images = laplacian_pyramid(gaussian_images)
-            mu_fractal = image  # 초기 mu_0 이미지
+            mu_fractal = image
             for k, laplacian in enumerate(laplacian_images):
-                # 원본 이미지의 높이와 너비가 H, W
                 _, _, H, W = sample.shape
                 upsampled_laplacian = F.interpolate(laplacian, size=(H, W), mode='bilinear', align_corners=False)
-                mu_fractal += weights[k] * upsampled_laplacian#laplacian
-            sample[i] = mu_fractal.squeeze(0)  # 다시 배치에 삽입
+                mu_fractal += weights[k] * upsampled_laplacian
+            sample[i] = mu_fractal.squeeze(0)
 
         # 이미지 후처리 및 저장 코드
         sample = ((sample + 1) * 127.5).clamp(0, 255).to(th.uint8)
