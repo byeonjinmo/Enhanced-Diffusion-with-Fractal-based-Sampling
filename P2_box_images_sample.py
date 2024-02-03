@@ -57,12 +57,12 @@ def calculate_weights(num_levels, fractal_dimension):
 #     fractal_dimension = coeffs[0]
 #     return fractal_dimension
 def box_counting(image, min_box_size=1, max_box_size=None, steps=10):
-    # 이미지를 흑백으로 변환하고, numpy 배열로 변환
-    image = image.mean(dim=0).numpy()
+    image = image.mean(dim=0).numpy()  # 이미지를 흑백으로 변환하고 NumPy 배열로 변환
     if max_box_size is None:
         max_box_size = min(image.shape) // 2
     sizes = np.floor(np.logspace(np.log10(min_box_size), np.log10(max_box_size), num=steps)).astype(int)
-    counts = []
+
+    counts = []  # counts 리스트를 여기서 초기화
     for size in sizes:
         count = 0
         for x in range(0, image.shape[1] - size + 1, size):
@@ -70,6 +70,12 @@ def box_counting(image, min_box_size=1, max_box_size=None, steps=10):
                 if np.sum(image[y:y+size, x:x+size]) > 0:
                     count += 1
         counts.append(count)
+
+    # counts 리스트 사용이 완료된 후 NumPy 배열로 변환
+    counts = np.array(counts)
+    # 0 값을 1로 대체하는 로직이 필요한 경우 여기에 추가
+    counts[counts == 0] = 1
+
     coeffs = np.polyfit(np.log(sizes), np.log(counts), 1)
     fractal_dimension = coeffs[0]
     return fractal_dimension
@@ -143,7 +149,7 @@ def main():
 
         for i in range(sample.shape[0]):
             image = sample[i].unsqueeze(0)  # 배치 차원을 유지하면서 i번째 이미지 선택
-            # 프랙탈 차원 계산
+            # 프랙탈 차원 계산 ( 박스카운팅으로 계싼
             fractal_dimension = box_counting(image)
             # 프랙탈 차원을 기반으로 가중치 계산
             weights = calculate_weights(num_levels, fractal_dimension)
@@ -204,3 +210,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
